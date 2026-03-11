@@ -29,6 +29,15 @@ Use this skill whenever the user:
   - 页面内容按照星期分组，内部每个番剧是指向 `https://mikanani.kas.pub/Home/Bangumi/<bangumiId>` 的链接。  
   - `bangumiId` 即番剧 ID，例如 `.../Home/Bangumi/3863` 中 `3863`。
 
+- **番剧搜索结果页（按关键词）**  
+  - 入口：`https://mikanani.kas.pub/Home/Search?searchstr=<ENCODED_KEYWORD>`，例如：  
+    - `https://mikanani.kas.pub/Home/Search?searchstr=%E9%AD%94%E6%B3%95%E5%B0%91%E5%A5%B3%E5%B0%8F%E5%9C%86`（搜索“魔法少女小圆”）。  
+  - 搜索结果主体位于 `#sk-container > div.central-container > ul` 下，每个 `<li>` 通常对应一个番剧或资源条目。  
+  - 在本技能场景中，只需从该 `<ul>` 中提取与目标番剧直接相关的条目即可，**忽略页面上的“相关推荐”“搜索结果表格”等其他区域**。  
+  - 解析策略示例：  
+    - 在 `#sk-container > div.central-container > ul > li` 中查找标题文本或链接，匹配包含番剧名关键字的项；  
+    - 一旦确认具体番剧，可继续通过内部链接（如果存在 `/Home/Bangumi/<bangumiId>`）或结合季度接口确定 `bangumiId`。
+
 - **番剧详情页**  
   - 入口：`https://mikanani.kas.pub/Home/Bangumi/<bangumiId>`。  
   - 包含：番名、放送信息、简介，以及 **“字幕组列表”**。  
@@ -56,8 +65,13 @@ Use this skill whenever the user:
    - 在回复中明确标注你假定使用的 `year` 和 `seasonStr`，以便用户知道。
 
 3. **若用户只给番名不提季度/年份：**
-   - 可以先在当前或最近的季度搜索该番名。  
-   - 如果未找到，说明只实现“按指定季度检索”的逻辑，让用户补充具体 `年份 + 季度`。
+   - **优先使用关键词搜索页**：  
+     - 构造 `https://mikanani.kas.pub/Home/Search?searchstr=<ENCODED_KEYWORD>`，其中 `<ENCODED_KEYWORD>` 为番剧名的 URL 编码（例如 “魔法少女小圆” → `%E9%AD%94%E6%B3%95%E5%B0%91%E5%A5%B3%E5%B0%8F%E5%9C%86`）。  
+     - 在返回页面中，只解析 `#sk-container > div.central-container > ul` 下的 `<li>` 项，忽略其他区域（相关推荐、大资源表格等）。  
+     - 从这些 `<li>` 中匹配番剧标题；若存在指向 `/Home/Bangumi/<bangumiId>` 的链接，可直接取得 `bangumiId` 并跳到后续流程。  
+   - 如果搜索页无法可靠定位到唯一番剧（无结果或多个高度相似候选），则回退到 **按季度检索**：  
+     - 先根据当前日期推断最可能的 `year + seasonStr`，在对应季度列表中搜索该番名；  
+     - 若仍无法确定，明确说明需要用户补充具体 `年份 + 季节` 或更精确的番名。
 
 ### 2. 获取指定季度的番剧列表
 
